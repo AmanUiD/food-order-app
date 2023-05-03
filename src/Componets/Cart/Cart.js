@@ -7,6 +7,8 @@ import Checkout from './Checkout';
 
 const Cart = (props) => {
    const [isChechout, setIsCheckout] = useState(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
+   const [didSubmitting, setDidSubmitting] = useState(false);
    const cartCtx = useContext(CartContext);
    const totalAmount = `$${cartCtx.totalAmount.toFixed(2)}`;
    const hasItems = cartCtx.items.length > 0;
@@ -22,6 +24,21 @@ const Cart = (props) => {
    const orderHandler = () => {
       setIsCheckout(true);
    }
+   const submitOrderHandler = async (userdata) => {
+      setIsSubmitting(true);
+      await fetch('https://food-order-c7fd5-default-rtdb.firebaseio.com/order.json', {
+         method: 'POST',
+         body: JSON.stringify({
+            user: userdata,
+            ordereditems: cartCtx.items
+         })
+      })
+      setIsSubmitting(false);
+      setDidSubmitting(true);
+      cartCtx.clearCart();
+   };
+
+
 
    const cartitems = (
       <ul className={classes['cart-items']}>
@@ -44,15 +61,33 @@ const Cart = (props) => {
          {hasItems && <button className={classes.button} onClick={orderHandler}>order</button>}
       </div>
    )
+   const cartModalContent =
+      (
+         <>
+            {cartitems}
+            <div className={classes.total}>
+               <span>Total Amount</span>
+               <span>{totalAmount}</span>
+            </div>
+            {isChechout && <Checkout onCancel={props.onClose} onConfirm={submitOrderHandler} />}
+            {!isChechout && modalAction}
+         </>
+      );
+   const isSubmittingModalContent = <p>Sending order data...</p>;
+
+   const didSubmitModalContent = (
+      <>
+         <p>Successfully sent the order!</p>
+         <div className={classes.actions}>
+            <button className={classes.button} onClick={props.onClose}>close</button>
+         </div>
+      </>
+   )
    return (
       <Modal onClose={props.onClose}>
-         {cartitems}
-         <div className={classes.total}>
-            <span>Total Amount</span>
-            <span>{totalAmount}</span>
-         </div>
-         {isChechout && <Checkout onCancel={props.onClose} />}
-         {!isChechout && modalAction}
+         {!isSubmitting && !didSubmitting && cartModalContent}
+         {isSubmitting && isSubmittingModalContent}
+         {!isSubmitting && didSubmitting && didSubmitModalContent}
       </Modal>
    )
 }
